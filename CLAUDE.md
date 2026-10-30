@@ -115,8 +115,10 @@ bazel test //...                          # analysis + end-to-end
 (cd e2e/consumer && bazel test //...)     # consumer module, Go 1.25 SDK
 ```
 
-Neither needs Docker or a host Go. CI runs both on Bazel 8.x and 9.x with every
-`go` removed from PATH.
+Neither needs Docker or a host Go. CI runs both on Bazel 8.x and 9.x after
+removing host Go: PATH entries holding `go` are dropped, and `go`/`gofmt` are
+deleted from `/bin`, `/usr/bin` and `/usr/local/bin` (Bazel's default action
+PATH).
 
 ### Test results (last full run: 2026-10-30, Bazel 9.3.1, no host Go)
 

@@ -30,7 +30,7 @@ rules.
 | 14 | Go SDK | `go_sdk.download(version = "1.26.10")`. A root module's own SDK takes precedence. oapi-codegen v2.8 needs Go ≥ 1.25; e2e/consumer pins 1.25.14 to keep that floor tested. | rules_go behaviour |
 | 15 | Platforms | Linux and macOS exec platforms (POSIX shell in the action). No Windows. Linux validated in CI. | Sibling family |
 | 16 | Tests | Analysis tests (output naming, argv per attribute, validation); end-to-end client against httptest (`tests/petstore`); config + split spec (`tests/config`); generated strict server called by the generated client (`tests/server`); generated-file header check; `versions.bzl`/`go.mod` sync check; a separate consumer module (`e2e/consumer`) with its own Go SDK and `go_deps`. | Sibling family + requester |
-| 17 | CI | Bazel 8.x and 9.x matrix. Every PATH entry holding a `go` binary is dropped first, so green CI proves codegen doesn't touch host Go. | rules_spicedb hermetic-verification pattern |
+| 17 | CI | Bazel 8.x and 9.x matrix. Host Go is removed first: PATH entries holding `go` are dropped, and `go`/`gofmt` are deleted from `/bin`, `/usr/bin`, `/usr/local/bin` (Bazel's default action PATH, which the job PATH doesn't control). Green CI proves codegen doesn't touch host Go. | rules_spicedb hermetic-verification pattern |
 | 18 | License | None, matching the sibling repos. | Org precedent |
 
 ## Notes

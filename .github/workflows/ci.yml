@@ -27,33 +27,44 @@ jobs:
           disk-cache: ${{ github.workflow }}-${{ matrix.bazel }}
           repository-cache: true
 
-      # The runner ships Go on PATH. Drop every PATH entry that holds a `go`
-      # binary so the tests prove codegen uses the rules_go SDK, not the
-      # host's Go (oapi-codegen's goimports pass shells out to `go env`).
-      - name: Remove host Go from PATH
+      # The runner ships Go, including /usr/bin/go. Drop every PATH entry that
+      # holds a `go` binary, and delete go/gofmt from the system bin dirs:
+      # Bazel's action PATH includes /bin:/usr/bin:/usr/local/bin whatever the
+      # job's PATH says. Green tests then prove codegen uses the rules_go SDK,
+      # not host Go (oapi-codegen's goimports pass shells out to `go env`).
+      - name: Remove host Go
         run: |
           set -euo pipefail
+          for d in /bin /usr/bin /usr/local/bin; do
+            for b in go gofmt; do
+              if [[ -e "$d/$b" || -L "$d/$b" ]]; then
+                echo "deleting $d/$b -> $(readlink -f "$d/$b" || true)"
+                sudo rm -f "$d/$b"
+              fi
+            done
+          done
           new=""
           IFS=: read -ra dirs <<< "$PATH"
           for d in "${dirs[@]}"; do
             if [[ -x "$d/go" ]]; then
-              case "$d" in
-                /bin|/usr/bin) echo "FAIL: go is in $d; can't drop it from PATH" >&2; exit 1 ;;
-              esac
-              echo "dropping $d"
+              echo "dropping $d from PATH"
               continue
             fi
             new="${new:+$new:}$d"
           done
           echo "PATH=$new" >> "$GITHUB_ENV"
 
-      - name: Verify NO host go on PATH
+      - name: Verify NO host go
         run: |
+          set -euo pipefail
           if command -v go >/dev/null 2>&1; then
             echo "FAIL: go found at $(command -v go); the hermeticity proof would be meaningless" >&2
             exit 1
           fi
-          echo "OK — no host go"
+          for d in /bin /usr/bin /usr/local/bin; do
+            [[ ! -e "$d/go" ]] || { echo "FAIL: $d/go still exists" >&2; exit 1; }
+          done
+          echo "OK — no host go on PATH or in Bazel's default action PATH"
 
       - name: bazel build //...
         run: bazel build //...
