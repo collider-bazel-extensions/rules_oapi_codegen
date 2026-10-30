@@ -1,0 +1,30 @@
+"""Consumer smoke test for rules_oapi_codegen.
+
+A separate root module that uses rules_oapi_codegen the way a downstream
+repo does: through bazel_dep (here via local_path_override), with its own
+Go SDK and its own go_deps. Run from this directory:
+
+    bazel test //...
+"""
+
+module(name = "rules_oapi_codegen_e2e_consumer")
+
+bazel_dep(name = "rules_oapi_codegen", version = "0.1.0")
+local_path_override(
+    module_name = "rules_oapi_codegen",
+    path = "../..",
+)
+
+bazel_dep(name = "rules_go", version = "0.59.0")
+bazel_dep(name = "gazelle", version = "0.50.0")
+
+# The root module's SDK wins over rules_oapi_codegen's own pin. Go 1.25 is
+# the oldest oapi-codegen v2.8 supports.
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.download(version = "1.25.14")
+
+# The consumer's own go.mod also requires oapi-codegen/runtime; go_deps
+# merges it with rules_oapi_codegen's and both resolve to one repo.
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_github_oapi_codegen_runtime")

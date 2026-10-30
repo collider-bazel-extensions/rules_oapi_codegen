@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: Health
+  version: 1.0.0
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service health.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, checkedAt]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checkedAt:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          format: uuid

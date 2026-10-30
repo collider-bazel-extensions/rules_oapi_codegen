@@ -1,0 +1,38 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_oapi_codegen//:defs.bzl", "oapi_codegen")
+
+# oapi_codegen generating a server: the README's server example, end to end.
+# The strict net/http server is generated from the petstore spec, and the
+# petstore client (//tests/petstore) calls it.
+
+oapi_codegen(
+    name = "petserver_gen",
+    spec = "//tests/petstore:openapi.yaml",
+    package = "petserver",
+    generate = ["types", "std-http-server", "strict-server", "spec"],
+)
+
+go_library(
+    name = "petserver",
+    srcs = [
+        "server_impl.go",
+        ":petserver_gen",
+    ],
+    importpath = "github.com/collider-bazel-extensions/rules_oapi_codegen/tests/server/petserver",
+    deps = [
+        "@com_github_getkin_kin_openapi//openapi3",
+        "@com_github_oapi_codegen_runtime//:runtime",
+        "@com_github_oapi_codegen_runtime//strictmiddleware/nethttp",
+        "@com_github_oapi_codegen_runtime//types",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    srcs = ["server_test.go"],
+    deps = [
+        ":petserver",
+        "//tests/petstore",
+        "@com_github_oapi_codegen_runtime//types",
+    ],
+)

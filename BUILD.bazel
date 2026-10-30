@@ -1,0 +1,32 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "MODULE.bazel",
+    "WORKSPACE",
+    "defs.bzl",
+    "go.mod",
+    "go.sum",
+    "repositories.bzl",
+])
+
+# The oapi-codegen CLI, built from source at the version pinned in go.mod.
+alias(
+    name = "oapi-codegen",
+    actual = "@com_github_oapi_codegen_oapi_codegen_v2//cmd/oapi-codegen",
+)
+
+bzl_library(
+    name = "defs",
+    srcs = ["defs.bzl"],
+    deps = [
+        "//private:go_oapi_client",
+        "//private:oapi_codegen",
+    ],
+)
+
+bzl_library(
+    name = "repositories",
+    srcs = ["repositories.bzl"],
+)

@@ -1,0 +1,7 @@
+# errors.yaml has no paths, so oapi-codegen would prune all of its schemas.
+# skip-prune keeps them; this config is only for :inventory_errors_gen.
+package: inventory
+generate:
+  models: true
+output-options:
+  skip-prune: true

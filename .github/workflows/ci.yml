@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: bazel test (ubuntu-latest, Bazel ${{ matrix.bazel }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.x: downstream consumers (monok8s) are on Bazel 8. 9.x: latest.
+        bazel: ["8.x", "9.x"]
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-${{ matrix.bazel }}
+          repository-cache: true
+
+      # The runner ships Go on PATH. Drop every PATH entry that holds a `go`
+      # binary so the tests prove codegen uses the rules_go SDK, not the
+      # host's Go (oapi-codegen's goimports pass shells out to `go env`).
+      - name: Remove host Go from PATH
+        run: |
+          set -euo pipefail
+          new=""
+          IFS=: read -ra dirs <<< "$PATH"
+          for d in "${dirs[@]}"; do
+            if [[ -x "$d/go" ]]; then
+              case "$d" in
+                /bin|/usr/bin) echo "FAIL: go is in $d; can't drop it from PATH" >&2; exit 1 ;;
+              esac
+              echo "dropping $d"
+              continue
+            fi
+            new="${new:+$new:}$d"
+          done
+          echo "PATH=$new" >> "$GITHUB_ENV"
+
+      - name: Verify NO host go on PATH
+        run: |
+          if command -v go >/dev/null 2>&1; then
+            echo "FAIL: go found at $(command -v go); the hermeticity proof would be meaningless" >&2
+            exit 1
+          fi
+          echo "OK — no host go"
+
+      - name: bazel build //...
+        run: bazel build //...
+
+      - name: bazel test //... (analysis + end-to-end codegen)
+        run: bazel test //... --test_output=errors
+
+      - name: e2e consumer (separate root module, own Go SDK and go_deps)
+        working-directory: e2e/consumer
+        run: bazel test //... --test_output=errors
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazel-testlogs-${{ matrix.bazel }}
+          path: |
+            bazel-testlogs/
+            e2e/consumer/bazel-testlogs/
+          if-no-files-found: ignore

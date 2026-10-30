@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Inventory
+  version: 1.0.0
+paths:
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: All items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+        default:
+          description: Error.
+          content:
+            application/json:
+              schema:
+                $ref: "./errors.yaml#/components/schemas/Error"
+components:
+  schemas:
+    Item:
+      type: object
+      required: [sku, count]
+      properties:
+        sku:
+          type: string
+        count:
+          type: integer
+        lastError:
+          $ref: "./errors.yaml#/components/schemas/Error"

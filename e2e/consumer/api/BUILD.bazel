@@ -1,0 +1,19 @@
+load("@rules_go//go:def.bzl", "go_test")
+load("@rules_oapi_codegen//:defs.bzl", "go_oapi_client")
+
+go_oapi_client(
+    name = "api",
+    spec = "openapi.yaml",
+    importpath = "example.com/consumer/api",
+)
+
+go_test(
+    name = "client_test",
+    srcs = ["client_test.go"],
+    deps = [
+        ":api",
+        # Repeats one of go_oapi_client's default deps through the
+        # consumer's own go_deps repo mapping: must not duplicate.
+        "@com_github_oapi_codegen_runtime//types",
+    ],
+)

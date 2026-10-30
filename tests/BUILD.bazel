@@ -1,0 +1,49 @@
+"""Tests for rules_oapi_codegen.
+
+- Analysis tests check output naming, the oapi-codegen flags each attribute
+  produces, and argument validation, without running oapi-codegen.
+- `:petstore_generated_test` checks the generated file's header.
+- End-to-end tests live in subpackages:
+  - `petstore/`: go_oapi_client; the generated client calls an httptest
+    server.
+  - `config/`: oapi_codegen with config files and a spec split across files.
+  - `server/`: oapi_codegen generating a strict net/http server, called by
+    the petstore client.
+
+None of them need `go` on the host: oapi-codegen is built from source and
+the action runs the rules_go SDK's `go`.
+"""
+
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load(":analysis_tests.bzl", "go_oapi_client_test_suite", "oapi_codegen_test_suite")
+
+# ---- analysis ---------------------------------------------------------------
+
+oapi_codegen_test_suite(name = "oapi_codegen_analysis")
+
+go_oapi_client_test_suite(name = "go_oapi_client_analysis")
+
+# ---- generated output -------------------------------------------------------
+
+sh_test(
+    name = "petstore_generated_test",
+    srcs = ["assert_generated.sh"],
+    args = [
+        "$(rootpath //tests/petstore:petstore_gen)",
+        "petstore",
+    ],
+    data = ["//tests/petstore:petstore_gen"],
+)
+
+sh_test(
+    name = "version_sync_test",
+    srcs = ["version_sync_test.sh"],
+    args = [
+        "$(rootpath //:go.mod)",
+        "$(rootpath //private:versions.bzl)",
+    ],
+    data = [
+        "//:go.mod",
+        "//private:versions.bzl",
+    ],
+)

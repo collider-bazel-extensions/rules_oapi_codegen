@@ -1,0 +1,49 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_oapi_codegen//:defs.bzl", "oapi_codegen")
+
+# Used by //tests:analysis_tests.bzl.
+exports_files(
+    [
+        "errors.yaml",
+        "oapi-codegen.yaml",
+        "openapi.yaml",
+    ],
+    visibility = ["//tests:__pkg__"],
+)
+
+# oapi_codegen with a config file, and a spec split across two files:
+#   - :inventory_gen takes package and generate targets from
+#     oapi-codegen.yaml; openapi.yaml pulls Error from errors.yaml (listed in
+#     `data`) through a relative $ref, mapped to this package with `-`.
+#   - :inventory_errors_gen generates errors.yaml's schemas into the same
+#     package. errors.yaml has no paths, so its config sets skip-prune.
+
+oapi_codegen(
+    name = "inventory_gen",
+    spec = "openapi.yaml",
+    config = "oapi-codegen.yaml",
+    data = ["errors.yaml"],
+    out = "inventory.gen.go",
+    visibility = ["//tests:__subpackages__"],
+)
+
+oapi_codegen(
+    name = "inventory_errors_gen",
+    spec = "errors.yaml",
+    config = "errors-codegen.yaml",
+)
+
+go_library(
+    name = "inventory",
+    srcs = [
+        ":inventory_errors_gen",
+        ":inventory_gen",
+    ],
+    importpath = "github.com/collider-bazel-extensions/rules_oapi_codegen/tests/config/inventory",
+)
+
+go_test(
+    name = "models_test",
+    srcs = ["models_test.go"],
+    deps = [":inventory"],
+)

@@ -1,0 +1,27 @@
+load("@rules_go//go:def.bzl", "go_test")
+load("@rules_oapi_codegen//:defs.bzl", "go_oapi_client")
+
+# Used by //tests:analysis_tests.bzl.
+exports_files(
+    ["openapi.yaml"],
+    visibility = ["//tests:__subpackages__"],
+)
+
+# go_oapi_client end to end: generate types + client, compile, and call the
+# client against an httptest server.
+
+go_oapi_client(
+    name = "petstore",
+    spec = "openapi.yaml",
+    importpath = "github.com/collider-bazel-extensions/rules_oapi_codegen/tests/petstore",
+    visibility = ["//tests:__subpackages__"],
+)
+
+go_test(
+    name = "client_test",
+    srcs = ["client_test.go"],
+    deps = [
+        ":petstore",
+        "@com_github_oapi_codegen_runtime//types",
+    ],
+)

@@ -1,0 +1,25 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["versions.bzl"])
+
+bzl_library(
+    name = "versions",
+    srcs = ["versions.bzl"],
+)
+
+bzl_library(
+    name = "oapi_codegen",
+    srcs = ["oapi_codegen.bzl"],
+    deps = [":versions"],
+)
+
+bzl_library(
+    name = "go_oapi_client",
+    srcs = ["go_oapi_client.bzl"],
+    deps = [
+        ":oapi_codegen",
+        "@rules_go//go:def",
+    ],
+)
