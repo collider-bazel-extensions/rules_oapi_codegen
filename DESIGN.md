@@ -75,3 +75,7 @@ rules.
   `user-templates` reference files by path; they work today if those files
   are passed in `data`, but nothing tests them.
 - **BCR publication.**
+
+## Release archive contents (v0.1.1)
+
+`tests/` is `export-ignore` (`.gitattributes`): its packages load the dev-only `rules_shell`, which made `@rules_oapi_codegen//...` unloadable for consumers. GitHub's tag tarballs honour it; a `git_override` clone still contains it. `REPO.bazel` `ignore_directories` isn't used because it would also hide it from this repo's own `bazel test`. `e2e/` (a separate root module, not loaded by `//...`) and `tools/` (no BUILD files) still ship. CI's `consumer` job (`.github/consumer/check.sh`) queries `//...` from the commit's `git archive`. Same fix as rules_kubectl#5 / rules_atlas#12.

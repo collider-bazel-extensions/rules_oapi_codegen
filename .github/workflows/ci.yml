@@ -8,6 +8,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  consumer:
+    # The commit's release archive (git archive honours .gitattributes
+    # export-ignore, as GitHub's tag tarballs do) must load with //... for a
+    # consumer.
+    name: consumer (ubuntu-latest, git archive)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+
+      - name: bazel query @rules_oapi_codegen//... from the archive
+        run: .github/consumer/check.sh "$RUNNER_TEMP/consumer"
+
   linux:
     name: bazel test (ubuntu-latest, Bazel ${{ matrix.bazel }})
     runs-on: ubuntu-latest
