@@ -38,21 +38,23 @@ built and tested with Go 1.26.10 (minimum Go 1.25).
 ## Installation
 
 ```python
-bazel_dep(name = "rules_oapi_codegen", version = "0.1.0")
+bazel_dep(name = "rules_oapi_codegen", version = "0.1.1")
 ```
 
 `rules_oapi_codegen` is **Bzlmod-only** in v0.1. Until it lands in BCR,
 consume it via `archive_override` pointing at a release tag:
 
 ```python
-bazel_dep(name = "rules_oapi_codegen", version = "0.1.0")
+bazel_dep(name = "rules_oapi_codegen", version = "0.1.1")
 archive_override(
     module_name = "rules_oapi_codegen",
-    urls = ["https://github.com/collider-bazel-extensions/rules_oapi_codegen/archive/refs/tags/v0.1.0.tar.gz"],
-    strip_prefix = "rules_oapi_codegen-0.1.0",
+    urls = ["https://github.com/collider-bazel-extensions/rules_oapi_codegen/archive/refs/tags/v0.1.1.tar.gz"],
+    strip_prefix = "rules_oapi_codegen-0.1.1",
     integrity = "sha256-...",  # see the release notes
 )
 ```
+
+The release archive (the tag tarball) leaves out `tests/`, whose packages load the dev-only `rules_shell`, so `bazel query @rules_oapi_codegen//...` works for consumers (since v0.1.1). A `git_override` clone still contains it; name packages instead (for example `@rules_oapi_codegen//:all`).
 
 It depends on `rules_go` (>= 0.59.0) and `gazelle` (>= 0.50.0). Your module
 needs `rules_go` anyway to build the generated code.

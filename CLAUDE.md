@@ -154,3 +154,7 @@ the version strings in `README.md`, `DESIGN.md` and `tests/assert_generated.sh`
   (oapi-codegen requirement); list the files in `data`.
 - **No server macro** — generate servers with `oapi_codegen` + your own
   `go_library` (see `tests/server`).
+
+## Release archive
+
+`.gitattributes` export-ignores `tests/`, so it may load dev-only modules; nothing else may. CI's `consumer` job checks that `@rules_oapi_codegen//...` loads from the commit's `git archive` (`.github/consumer/check.sh`).
