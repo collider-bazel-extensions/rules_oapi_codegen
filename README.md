@@ -50,7 +50,7 @@ archive_override(
     module_name = "rules_oapi_codegen",
     urls = ["https://github.com/collider-bazel-extensions/rules_oapi_codegen/archive/refs/tags/v0.1.1.tar.gz"],
     strip_prefix = "rules_oapi_codegen-0.1.1",
-    integrity = "sha256-...",  # see the release notes
+    integrity = "sha256-XmwncFqhvvfC6FKmTX7rUaCi2KUtKX4s6OmLtnIcgLc=",
 )
 ```
 
