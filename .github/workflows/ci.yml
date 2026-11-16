@@ -51,6 +51,19 @@ jobs:
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
 
+      # The runner's `bazel` is the npm bazelisk (a node script), which would
+      # break once host Node.js is gone. Put a native, sha256-checked
+      # bazelisk first on PATH instead.
+      - name: Native bazelisk
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/bazelisk"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/bazel" https://github.com/bazelbuild/bazelisk/releases/download/v1.30.0/bazelisk-linux-amd64
+          echo "a248ae2b2b62b5baebb748f6fba7203bff1a27e5d01b55399a8406744cb539e8  $dir/bazel" | sha256sum -c -
+          chmod +x "$dir/bazel"
+          echo "$dir" >> "$GITHUB_PATH"
+
       # The runner ships Go and Node.js, including /usr/bin/go and
       # /usr/local/bin/node. Drop every PATH entry that holds one of them,
       # and delete them from the system bin dirs: Bazel's action PATH
@@ -94,6 +107,7 @@ jobs:
             done
           done
           echo "OK — no host go or node on PATH or in Bazel's default action PATH"
+          echo "bazel: $(command -v bazel)"; bazel --version
 
       - name: bazel build //...
         run: bazel build //...
