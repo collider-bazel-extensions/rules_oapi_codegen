@@ -1,0 +1,6 @@
+# Pinned npm packages for ts_oapi_types, read by the npm_repo repository rule
+# in //private:ts_deps.bzl. Regenerate the lock with tools/update_npm_lock.sh.
+exports_files([
+    "package.json",
+    "package-lock.json",
+])

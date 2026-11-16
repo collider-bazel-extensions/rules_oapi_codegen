@@ -9,19 +9,24 @@
   - `config/`: oapi_codegen with config files and a spec split across files.
   - `server/`: oapi_codegen generating a strict net/http server, called by
     the petstore client.
+  - `ts/`: ts_oapi_types golden output, `tsc --noEmit --strict` typecheck
+    plus a runtime check of `operationMap`, and invalid-spec errors.
 
-None of them need `go` on the host: oapi-codegen is built from source and
-the action runs the rules_go SDK's `go`.
+None of them need `go` or `node` on the host: oapi-codegen is built from
+source and the action runs the rules_go SDK's `go`; ts_oapi_types runs a
+pinned Node.js over the npm packages pinned by private/npm/package-lock.json.
 """
 
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
-load(":analysis_tests.bzl", "go_oapi_client_test_suite", "oapi_codegen_test_suite")
+load(":analysis_tests.bzl", "go_oapi_client_test_suite", "oapi_codegen_test_suite", "ts_oapi_types_test_suite")
 
 # ---- analysis ---------------------------------------------------------------
 
 oapi_codegen_test_suite(name = "oapi_codegen_analysis")
 
 go_oapi_client_test_suite(name = "go_oapi_client_analysis")
+
+ts_oapi_types_test_suite(name = "ts_oapi_types_analysis")
 
 # ---- generated output -------------------------------------------------------
 

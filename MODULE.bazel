@@ -1,13 +1,14 @@
-"""rules_oapi_codegen — hermetic oapi-codegen (OpenAPI → Go) for Bazel: oapi_codegen, go_oapi_client."""
+"""rules_oapi_codegen — hermetic OpenAPI codegen for Bazel: oapi_codegen, go_oapi_client (Go), ts_oapi_types (TypeScript)."""
 
 module(
     name = "rules_oapi_codegen",
-    version = "0.1.1",
+    version = "0.2.0",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "rules_go", version = "0.59.0")
 bazel_dep(name = "gazelle", version = "0.50.0")
+bazel_dep(name = "platforms", version = "0.0.11")
 
 # Go SDK used to build oapi-codegen and to run `go env` for its goimports
 # pass. oapi-codegen v2.8 needs Go >= 1.25. A root module's own
@@ -26,6 +27,20 @@ use_repo(
     "com_github_getkin_kin_openapi",
     "com_github_oapi_codegen_oapi_codegen_v2",
     "com_github_oapi_codegen_runtime",
+)
+
+# ts_oapi_types: a sha256-pinned Node.js per exec platform and the npm tree
+# pinned by private/npm/package-lock.json (openapi-typescript, typescript).
+# Repositories are lazy: builds that never use ts_oapi_types (Go-only
+# consumers) fetch none of them.
+ts_deps = use_extension("//private:ts_deps.bzl", "ts_deps")
+use_repo(
+    ts_deps,
+    "oapi_ts_node_darwin_amd64",
+    "oapi_ts_node_darwin_arm64",
+    "oapi_ts_node_linux_amd64",
+    "oapi_ts_node_linux_arm64",
+    "oapi_ts_npm",
 )
 
 # ---- dev-only: rules_shell for the in-tree output assertions ----------------

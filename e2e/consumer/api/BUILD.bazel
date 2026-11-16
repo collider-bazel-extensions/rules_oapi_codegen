@@ -1,6 +1,9 @@
 load("@rules_go//go:def.bzl", "go_test")
 load("@rules_oapi_codegen//:defs.bzl", "go_oapi_client")
 
+# //ts generates TypeScript from the same spec.
+exports_files(["openapi.yaml"])
+
 go_oapi_client(
     name = "api",
     spec = "openapi.yaml",

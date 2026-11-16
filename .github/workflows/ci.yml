@@ -21,7 +21,12 @@ jobs:
           bazelisk-cache: true
           repository-cache: true
 
-      - name: bazel query @rules_oapi_codegen//... from the archive
+      # linux-sandbox needs unprivileged user namespaces; without them Bazel
+      # falls back to a sandbox that can't block the network.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: bazel query @rules_oapi_codegen//... and build ts_oapi_types from the archive
         run: .github/consumer/check.sh "$RUNNER_TEMP/consumer"
 
   linux:
@@ -43,16 +48,22 @@ jobs:
           disk-cache: ${{ github.workflow }}-${{ matrix.bazel }}
           repository-cache: true
 
-      # The runner ships Go, including /usr/bin/go. Drop every PATH entry that
-      # holds a `go` binary, and delete go/gofmt from the system bin dirs:
-      # Bazel's action PATH includes /bin:/usr/bin:/usr/local/bin whatever the
-      # job's PATH says. Green tests then prove codegen uses the rules_go SDK,
-      # not host Go (oapi-codegen's goimports pass shells out to `go env`).
-      - name: Remove host Go
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      # The runner ships Go and Node.js, including /usr/bin/go and
+      # /usr/local/bin/node. Drop every PATH entry that holds one of them,
+      # and delete them from the system bin dirs: Bazel's action PATH
+      # includes /bin:/usr/bin:/usr/local/bin whatever the job's PATH says.
+      # Green tests then prove codegen uses the rules_go SDK (oapi-codegen's
+      # goimports pass shells out to `go env`) and the pinned Node.js, not
+      # host tools. (JavaScript actions use the runner's own bundled node.)
+      - name: Remove host Go and Node.js
         run: |
           set -euo pipefail
+          tools=(go gofmt node npm npx corepack tsc)
           for d in /bin /usr/bin /usr/local/bin; do
-            for b in go gofmt; do
+            for b in "${tools[@]}"; do
               if [[ -e "$d/$b" || -L "$d/$b" ]]; then
                 echo "deleting $d/$b -> $(readlink -f "$d/$b" || true)"
                 sudo rm -f "$d/$b"
@@ -62,7 +73,7 @@ jobs:
           new=""
           IFS=: read -ra dirs <<< "$PATH"
           for d in "${dirs[@]}"; do
-            if [[ -x "$d/go" ]]; then
+            if [[ -x "$d/go" || -x "$d/node" ]]; then
               echo "dropping $d from PATH"
               continue
             fi
@@ -70,25 +81,34 @@ jobs:
           done
           echo "PATH=$new" >> "$GITHUB_ENV"
 
-      - name: Verify NO host go
+      - name: Verify NO host go or node
         run: |
           set -euo pipefail
-          if command -v go >/dev/null 2>&1; then
-            echo "FAIL: go found at $(command -v go); the hermeticity proof would be meaningless" >&2
-            exit 1
-          fi
-          for d in /bin /usr/bin /usr/local/bin; do
-            [[ ! -e "$d/go" ]] || { echo "FAIL: $d/go still exists" >&2; exit 1; }
+          for b in go node; do
+            if command -v "$b" >/dev/null 2>&1; then
+              echo "FAIL: $b found at $(command -v "$b"); the hermeticity proof would be meaningless" >&2
+              exit 1
+            fi
+            for d in /bin /usr/bin /usr/local/bin; do
+              [[ ! -e "$d/$b" ]] || { echo "FAIL: $d/$b still exists" >&2; exit 1; }
+            done
           done
-          echo "OK — no host go on PATH or in Bazel's default action PATH"
+          echo "OK — no host go or node on PATH or in Bazel's default action PATH"
 
       - name: bazel build //...
         run: bazel build //...
 
+      # --test_output=all so the log shows the ts_oapi_types tests' own output
+      # (tsc version, PASS lines), not just a status.
       - name: bazel test //... (analysis + end-to-end codegen)
-        run: bazel test //... --test_output=errors
+        run: bazel test //... --test_output=all
 
-      - name: e2e consumer (separate root module, own Go SDK and go_deps)
+      # Before anything else builds there: a fresh output base, so a fetched
+      # repository can only come from this build.
+      - name: e2e consumer — a Go-only build fetches no Node.js / npm
+        run: e2e/consumer/go_only_check.sh "$RUNNER_TEMP/go_only"
+
+      - name: e2e consumer (separate root module, own Go SDK and go_deps; rules_ts ts_project over ts_oapi_types)
         working-directory: e2e/consumer
         run: bazel test //... --test_output=errors
 

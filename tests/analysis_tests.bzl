@@ -2,7 +2,7 @@
 without running oapi-codegen."""
 
 load("@bazel_skylib//lib:unittest.bzl", "analysistest", "asserts")
-load("@rules_oapi_codegen//:defs.bzl", "go_oapi_client", "oapi_codegen")
+load("@rules_oapi_codegen//:defs.bzl", "go_oapi_client", "oapi_codegen", "ts_oapi_types")
 
 def _single_output_impl(ctx):
     env = analysistest.begin(ctx)
@@ -10,8 +10,8 @@ def _single_output_impl(ctx):
     files = target[DefaultInfo].files.to_list()
     asserts.equals(env, 1, len(files), "expected exactly one output")
     asserts.equals(env, ctx.attr.expected_basename, files[0].basename)
-    actions = [a for a in analysistest.target_actions(env) if a.mnemonic == "OapiCodegen"]
-    asserts.equals(env, 1, len(actions), "expected one OapiCodegen action")
+    actions = [a for a in analysistest.target_actions(env) if a.mnemonic == ctx.attr.mnemonic]
+    asserts.equals(env, 1, len(actions), "expected one {} action".format(ctx.attr.mnemonic))
     argv = actions[0].argv
     for flag in ctx.attr.expected_args:
         asserts.true(env, flag in argv, "expected {} in argv {}".format(flag, argv))
@@ -24,6 +24,7 @@ _single_output_test = analysistest.make(
     attrs = {
         "expected_basename": attr.string(),
         "expected_args": attr.string_list(),
+        "mnemonic": attr.string(default = "OapiCodegen"),
         "unexpected_args": attr.string_list(),
     },
 )
@@ -116,3 +117,43 @@ def go_oapi_client_test_suite(name):
         expected_args = ["-package", "my_api_v1", "-generate", "types,client"],
     )
     native.test_suite(name = name, tests = [":" + name + "_gen_test"])
+
+def ts_oapi_types_test_suite(name):
+    """ts_oapi_types output naming, argv and `out` validation."""
+    spec = "//tests/ts:openapi.yaml"
+
+    # Default output <name>.ts; node runs the generator with symlinks
+    # preserved, over the spec.
+    ts_oapi_types(name = name + "_defaults", spec = spec, tags = ["manual"])
+    _single_output_test(
+        name = name + "_defaults_test",
+        target_under_test = ":" + name + "_defaults",
+        mnemonic = "TsOapiTypes",
+        expected_basename = name + "_defaults.ts",
+        expected_args = [
+            "--preserve-symlinks",
+            "--preserve-symlinks-main",
+            "tests/ts/openapi.yaml",
+        ],
+    )
+
+    ts_oapi_types(name = name + "_out", spec = spec, out = "api.gen.ts", tags = ["manual"])
+    _single_output_test(
+        name = name + "_out_test",
+        target_under_test = ":" + name + "_out",
+        mnemonic = "TsOapiTypes",
+        expected_basename = "api.gen.ts",
+    )
+
+    ts_oapi_types(name = name + "_badout", spec = spec, out = "api.js", tags = ["manual"])
+    _fails_test(
+        name = name + "_badout_test",
+        target_under_test = ":" + name + "_badout",
+        expected_message = "`out` must end in .ts",
+    )
+
+    native.test_suite(name = name, tests = [
+        ":" + name + "_defaults_test",
+        ":" + name + "_out_test",
+        ":" + name + "_badout_test",
+    ])

@@ -1,0 +1,38 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@rules_oapi_codegen//:defs.bzl", "ts_oapi_types")
+
+# api.ts: the spec's types plus operationMap, from the spec //api's Go
+# client is generated from.
+ts_oapi_types(
+    name = "api",
+    spec = "//api:openapi.yaml",
+)
+
+# A plain ts_project over the generated file: tsc --strict type-checks it
+# together with gateway.ts and emits .js / .d.ts.
+ts_project(
+    name = "gateway",
+    srcs = [
+        "gateway.ts",
+        ":api",
+    ],
+    declaration = True,
+    transpiler = "tsc",
+    tsconfig = {
+        "compilerOptions": {
+            "declaration": True,
+            "module": "esnext",
+            "moduleResolution": "bundler",
+            "strict": True,
+            "target": "es2022",
+            "lib": ["es2022"],
+            "types": [],
+        },
+    },
+)
+
+build_test(
+    name = "gateway_build_test",
+    targets = [":gateway"],
+)

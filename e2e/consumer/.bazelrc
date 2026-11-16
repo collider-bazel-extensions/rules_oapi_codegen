@@ -1,0 +1,3 @@
+# aspect_tools_telemetry (pulled in by rules_ts) reports usage from a
+# repository rule unless told not to.
+common --repo_env=DO_NOT_TRACK=1
