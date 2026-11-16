@@ -1,0 +1,9 @@
+{
+  "name": "rules_oapi_codegen-ts-tools",
+  "private": true,
+  "description": "Pinned npm packages for ts_oapi_types. Regenerate package-lock.json with tools/update_npm_lock.sh.",
+  "dependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -2,14 +2,19 @@
 
 A separate root module that uses rules_oapi_codegen the way a downstream
 repo does: through bazel_dep (here via local_path_override), with its own
-Go SDK and its own go_deps. Run from this directory:
+Go SDK and its own go_deps. //api is the Go client; //ts generates
+TypeScript from the same spec and compiles it with rules_ts's ts_project.
+Run from this directory:
 
     bazel test //...
+
+go_only_check.sh checks that building only //api fetches no Node.js or npm
+repository.
 """
 
 module(name = "rules_oapi_codegen_e2e_consumer")
 
-bazel_dep(name = "rules_oapi_codegen", version = "0.1.0")
+bazel_dep(name = "rules_oapi_codegen", version = "0.2.0")
 local_path_override(
     module_name = "rules_oapi_codegen",
     path = "../..",
@@ -28,3 +33,15 @@ go_sdk.download(version = "1.25.14")
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 use_repo(go_deps, "com_github_oapi_codegen_runtime")
+
+# ts_project consumes ts_oapi_types output as a plain .ts source. rules_ts
+# and rules_js are this consumer's choice; rules_oapi_codegen doesn't depend
+# on them.
+bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
+bazel_dep(name = "aspect_rules_js", version = "2.9.3")
+bazel_dep(name = "rules_nodejs", version = "6.7.7")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
+typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "typescript")
+typescript.deps(version = "5.9.3")
+use_repo(typescript, "npm_typescript")

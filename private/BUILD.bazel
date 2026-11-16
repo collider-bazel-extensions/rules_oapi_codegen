@@ -2,7 +2,10 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["versions.bzl"])
+exports_files([
+    "ts_oapi_types.mjs",
+    "versions.bzl",
+])
 
 bzl_library(
     name = "versions",
@@ -22,4 +25,60 @@ bzl_library(
         ":oapi_codegen",
         "@rules_go//go:def",
     ],
+)
+
+bzl_library(
+    name = "ts_deps",
+    srcs = ["ts_deps.bzl"],
+)
+
+bzl_library(
+    name = "ts_oapi_types",
+    srcs = ["ts_oapi_types.bzl"],
+)
+
+# ---- ts_oapi_types: Node.js for the exec platform ---------------------------
+# Only the selected platform's repository is fetched.
+
+[
+    config_setting(
+        name = "exec_" + os + "_" + arch,
+        constraint_values = [
+            "@platforms//os:" + os,
+            "@platforms//cpu:" + cpu,
+        ],
+    )
+    for os in ("linux", "macos")
+    for arch, cpu in (("amd64", "x86_64"), ("arm64", "aarch64"))
+]
+
+alias(
+    name = "node",
+    actual = select(
+        {
+            ":exec_linux_amd64": "@oapi_ts_node_linux_amd64//:bin/node",
+            ":exec_linux_arm64": "@oapi_ts_node_linux_arm64//:bin/node",
+            ":exec_macos_amd64": "@oapi_ts_node_darwin_amd64//:bin/node",
+            ":exec_macos_arm64": "@oapi_ts_node_darwin_arm64//:bin/node",
+        },
+        no_match_error = "ts_oapi_types: no pinned Node.js for this exec platform " +
+                         "(have linux and macOS, amd64 and arm64).",
+    ),
+)
+
+# The pinned npm tree, for tests that run openapi-typescript's or
+# TypeScript's tools directly.
+alias(
+    name = "node_modules",
+    actual = "@oapi_ts_npm//:node_modules",
+)
+
+alias(
+    name = "tsc",
+    actual = "@oapi_ts_npm//:node_modules/typescript/lib/tsc.js",
+)
+
+alias(
+    name = "openapi_typescript_package_json",
+    actual = "@oapi_ts_npm//:node_modules/openapi-typescript/package.json",
 )

@@ -4,6 +4,8 @@
 # the export-ignored dirs are absent and `bazel query @<module>//...` works.
 # The consumer pins the module's non-dev, non-BCR deps with the same
 # overrides as its MODULE.bazel (overrides only apply in the root).
+# It then builds a ts_oapi_types target, so the archive carries everything
+# that rule fetches and runs.
 # Usage: .github/consumer/check.sh <scratch dir>
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -39,3 +41,37 @@ MOD
 cd "$work/consumer"
 bazel query "@$module//..." >/dev/null
 echo "PASS: @$module//... loads from the archive"
+
+# ts_oapi_types from the archive: its Node.js and npm repositories resolve
+# (private/npm/package-lock.json ships), and the action runs.
+cat > openapi.yaml <<'YAML'
+openapi: 3.0.3
+info: {title: Archive check, version: 1.0.0}
+paths:
+  /things/{id}:
+    get:
+      operationId: getThing
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Thing"}
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [id]
+      properties: {id: {type: string}}
+YAML
+cat > BUILD.bazel <<BUILD
+load("@$module//:defs.bzl", "ts_oapi_types")
+
+ts_oapi_types(name = "api", spec = "openapi.yaml")
+BUILD
+bazel build //:api
+grep -q 'getThing: { method: "get", path: "/things/{id}" },' bazel-bin/api.ts
+grep -q '^export interface operations {' bazel-bin/api.ts
+echo "PASS: ts_oapi_types builds from the archive"

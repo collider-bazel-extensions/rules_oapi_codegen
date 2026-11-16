@@ -1,0 +1,17 @@
+openapi: 3.0.3
+info:
+  title: Duplicate operationId
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      operationId: getThing
+      responses:
+        "200":
+          description: ok
+  /owners:
+    get:
+      operationId: getThing
+      responses:
+        "200":
+          description: ok

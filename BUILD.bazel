@@ -23,6 +23,7 @@ bzl_library(
     deps = [
         "//private:go_oapi_client",
         "//private:oapi_codegen",
+        "//private:ts_oapi_types",
     ],
 )
 

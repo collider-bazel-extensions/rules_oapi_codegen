@@ -1,0 +1,75 @@
+"""ts_oapi_types end-to-end tests.
+
+- `golden_test`: generated module == petstore.ts.golden (path, query and
+  header params, required/optional/no request body, several response codes
+  and `default`, $ref'd schemas, parameters and responses, an operation
+  without operationId).
+- `typecheck_test`: the pinned TypeScript compiles the module and usage.ts
+  (type-level assertions on every helper type) with `--noEmit --strict` and
+  stricter flags; Node then runs usage.ts to check `operationMap` at runtime.
+- `bad_spec_test`: invalid specs fail with a `ts_oapi_types: <spec>: <reason>`
+  error and no output.
+"""
+
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//:defs.bzl", "ts_oapi_types")
+
+exports_files(["openapi.yaml"])
+
+ts_oapi_types(
+    name = "petstore",
+    spec = "openapi.yaml",
+)
+
+sh_test(
+    name = "golden_test",
+    srcs = ["golden_test.sh"],
+    args = [
+        "$(rootpath :petstore)",
+        "$(rootpath petstore.ts.golden)",
+    ],
+    data = [
+        "petstore.ts.golden",
+        ":petstore",
+    ],
+)
+
+sh_test(
+    name = "typecheck_test",
+    srcs = ["typecheck_test.sh"],
+    args = [
+        "$(rootpath //private:node)",
+        "$(rootpath //private:tsc)",
+        "$(rootpath usage.ts)",
+        "$(rootpath :petstore)",
+    ],
+    data = [
+        "usage.ts",
+        ":petstore",
+        "//private:node",
+        "//private:node_modules",
+        "//private:tsc",
+    ],
+)
+
+sh_test(
+    name = "bad_spec_test",
+    srcs = ["bad_spec_test.sh"],
+    args = [
+        "$(rootpath //private:node)",
+        "$(rootpath //private:ts_oapi_types.mjs)",
+        "$(rootpath //private:openapi_typescript_package_json)",
+        "$(rootpath bad/missing_ref.yaml)",
+        "\"Can't resolve $$ref at #/paths/~1pets~1{petId}/get/responses/200/content/application~1json/schema\"",
+        "$(rootpath bad/duplicate_operation_id.yaml)",
+        "\"Every operation must have a unique `operationId`. at #/paths/~1owners/get/getThing\"",
+        "$(rootpath bad/swagger2.yaml)",
+        "\"Unsupported Swagger version: 2.x. Use OpenAPI 3.x instead.\"",
+    ],
+    data = glob(["bad/*.yaml"]) + [
+        "//private:node",
+        "//private:node_modules",
+        "//private:openapi_typescript_package_json",
+        "//private:ts_oapi_types.mjs",
+    ],
+)
