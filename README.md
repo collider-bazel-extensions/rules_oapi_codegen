@@ -49,18 +49,18 @@ built and tested with Go 1.26.10 (minimum Go 1.25). openapi-typescript
 ## Installation
 
 ```python
-bazel_dep(name = "rules_oapi_codegen", version = "0.2.0")
+bazel_dep(name = "rules_oapi_codegen", version = "0.2.1")
 ```
 
 `rules_oapi_codegen` is **Bzlmod-only**. Until it lands in BCR, consume it
 via `archive_override` pointing at a release tag:
 
 ```python
-bazel_dep(name = "rules_oapi_codegen", version = "0.2.0")
+bazel_dep(name = "rules_oapi_codegen", version = "0.2.1")
 archive_override(
     module_name = "rules_oapi_codegen",
-    urls = ["https://github.com/collider-bazel-extensions/rules_oapi_codegen/archive/refs/tags/v0.2.0.tar.gz"],
-    strip_prefix = "rules_oapi_codegen-0.2.0",
+    urls = ["https://github.com/collider-bazel-extensions/rules_oapi_codegen/archive/refs/tags/v0.2.1.tar.gz"],
+    strip_prefix = "rules_oapi_codegen-0.2.1",
     integrity = "sha256-8pmprzlADg1adq+7OjBawALzlvjbJvTqLtiSYGT7Z3c=",
 )
 ```
@@ -399,3 +399,7 @@ unblock the macOS support claim.
 Want Bazel rules for another tool or service?
 [Request a rules package](https://github.com/collider-bazel-extensions/.github/issues/new?template=request-a-rules-package.yml).
 The [organization page](https://github.com/collider-bazel-extensions) lists every package.
+
+## License
+
+[Apache License 2.0](LICENSE) (SPDX: `Apache-2.0`).
